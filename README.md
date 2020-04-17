@@ -1,2 +1,2 @@
-# data_engineering_udacity
+# Udacity Data Engineering
 Repo for Udacity Data Engineering Nanodegree Materials and Projects
