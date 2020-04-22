@@ -2,16 +2,17 @@
 
 import configparser
 import boto3
+import psycopg2
 
-def create_redshift_admin(admin_config):
+def create_redshift_admin(iam_credentials):
     '''
     Creates a redshift client instance with AWS IAM user credentials.
     The user needs policy to create clusters and pass 'S3 Read' role to it.
     
     Parameters
     ----------
-    admin_config : str
-        path to config (.cfg) file with user KEY and SECRET
+    iam_credentials : str
+        path to config (.cfg) file with IAM user KEY and SECRET
 
     Returns
     ----------
@@ -20,18 +21,18 @@ def create_redshift_admin(admin_config):
     '''
     
     #Read user KEY and SECRET
-    cfg_aws = configparser.ConfigParser()
-    cfg_aws.read_file(open(admin_config))
+    config = configparser.ConfigParser()
+    config.read_file(open(iam_credentials))
 
-    KEY = cfg_aws.get("AWS", "KEY")
-    SECRET = cfg_aws.get("AWS", "SECRET")
+    key = config.get("IAM", "key")
+    secret = config.get("IAM", "secret")
 
-    #Create client
+    #Create redshift client
     redshift_admin = boto3.client(
         'redshift',
         region_name="eu-west-1",
-        aws_access_key_id=KEY,
-        aws_secret_access_key=SECRET
+        aws_access_key_id = key,
+        aws_secret_access_key = secret
     )
     
     return redshift_admin
@@ -57,35 +58,35 @@ def create_cluster(cluster_config, redshift_admin):
     '''
     
     # Get Cluster details from config file
-    cfg_dwh = configparser.ConfigParser()
-    cfg_dwh.read_file(open(cluster_config))
-
-    DWH_NODE_TYPE = cfg_dwh.get("DWH", "DWH_NODE_TYPE")
-    DWH_CLUSTER_TYPE = cfg_dwh.get("DWH", "DWH_CLUSTER_TYPE")
-    DWH_NUM_NODES = cfg_dwh.get("DWH", "DWH_NUM_NODES")
-    DWH_DB = cfg_dwh.get("DWH", "DWH_DB")
-    DWH_DB_USER = cfg_dwh.get("DWH", "DWH_DB_USER")
-    DWH_DB_PASSWORD = cfg_dwh.get("DWH", "DWH_DB_PASSWORD")
-
-    DWH_CLUSTER_IDENTIFIER = cfg_dwh.get("DWH", "DWH_CLUSTER_IDENTIFIER")
-    DWH_IAM_ROLE_NAME = cfg_dwh.get("DWH", "DWH_IAM_ROLE_NAME")
+    config = configparser.ConfigParser()
+    config.read_file(open(cluster_config))
+       
+    cl_identifier = config.get("CLUSTER", "cl_identifier")
     
+    cl_node_type = config.get("CLUSTER", "cl_node_type")
+    cl_type = config.get("CLUSTER", "cl_type")
+    cl_num_nodes = config.get("CLUSTER", "cl_num_nodes")
+    cl_iam_arn = config.get("CLUSTER", "cl_iam_arn")
     
+    db_name = config.get("DB", "db_name")
+    db_user = config.get("DB", "db_user")
+    db_pwd = config.get("DB", "db_pwd")
+                
     try:
         response = redshift_admin.create_cluster(        
-            #DHW
-            ClusterType=DWH_CLUSTER_TYPE,
-            NodeType=DWH_NODE_TYPE,
-            NumberOfNodes=int(DWH_NUM_NODES),
+            #Cluster
+            NodeType = cl_node_type,
+            ClusterType = cl_type,
+            NumberOfNodes = int(cl_num_nodes),
 
             #Identifiers & Credentials
-            DBName=DWH_DB,
-            ClusterIdentifier=DWH_CLUSTER_IDENTIFIER,
-            MasterUsername=DWH_DB_USER,
-            MasterUserPassword=DWH_DB_PASSWORD
+            ClusterIdentifier = cl_identifier,
+            DBName = db_name,
+            MasterUsername = db_user,
+            MasterUserPassword = db_pwd
 
             #Role (for s3 access)
-            ,IamRoles=[DWH_IAM_ROLE_NAME]  
+            ,IamRoles = [cl_iam_arn]  
         )
         return response
     
@@ -93,30 +94,126 @@ def create_cluster(cluster_config, redshift_admin):
         print(e)
 
 
-def delete_cluster(cluster_config, redshift_admin):
+def delete_cluster(cluster_id, redshift_admin):
     '''
     Deletes a redshift cluster instance.
     
     Parameters
     ----------
-    cluster_config : str
-         config file with cluster characteristics
+    cluster_id : str
+         cluster identifier
     
     redshift_admin : redshift client
         Redshift client with policies allowing for a cluster deletion
     '''
     
-    # Get Cluster id config file
-    cfg_dwh = configparser.ConfigParser()
-    cfg_dwh.read_file(open(cluster_config))
-    
-    DWH_CLUSTER_IDENTIFIER = cfg_dwh.get("DWH", "DWH_CLUSTER_IDENTIFIER")
-    
     # Delete cluster
     try:
         redshift_admin.delete_cluster(
-            ClusterIdentifier=DWH_CLUSTER_IDENTIFIER,
+            ClusterIdentifier = cluster_id,
             SkipFinalClusterSnapshot=True
         )
     except Exception as e:
         print(e)
+
+def create_ec2_instance(iam_credentials):
+    '''
+    Creates a EC2 instance with AWS IAM user credentials.
+    
+    Parameters
+    ----------
+    iam_credentials : str
+        path to config (.cfg) file with IAM user KEY and SECRET
+
+    Returns
+    ----------
+    EC2 resource
+        
+    '''
+    
+    #Read user KEY and SECRET
+    config = configparser.ConfigParser()
+    config.read_file(open(iam_credentials))
+
+    key = config.get("IAM", "key")
+    secret = config.get("IAM", "secret")
+
+    #Create client
+    ec2 = boto3.resource('ec2',
+                       region_name="eu-west-1",
+                       aws_access_key_id = key,
+                       aws_secret_access_key = secret
+                    )
+    
+    return ec2
+
+def open_tcp_endpoint(ec2, cluster_config):
+    '''
+    Opens an incoming TCP port to access the cluster endpoint.
+    
+    Parameters
+    ----------
+    ec2 : ec2 instance
+        ec2 instance
+    
+    cluster_config : str
+         config file with cluster characteristics
+    '''
+        
+    # Get Cluster details from config file
+    config = configparser.ConfigParser()
+    config.read_file(open(cluster_config))
+       
+    cl_vpc_id = config.get("CLUSTER", "cl_vpc_id")
+    cl_vpc_sg_id = config.get("CLUSTER", "cl_vpc_sg_id")
+    db_port = config.get("DB", "db_port")
+    
+    
+    try:
+        vpc = ec2.Vpc(id = cl_vpc_id)
+        sgId = cl_vpc_sg_id
+        defaultSg = list(vpc.security_groups.filter(GroupIds=[sgId]))[0]
+        print(defaultSg)
+
+        defaultSg.authorize_ingress(
+            GroupName = defaultSg.group_name,
+            CidrIp = '0.0.0.0/0',
+            IpProtocol = 'TCP',
+            FromPort = int(db_port),
+            ToPort = int(db_port)
+        )
+    except Exception as e:
+        print(e)
+
+   
+
+def make_connection(cluster_config):
+    '''
+    Creates connection string for redshift cluster
+    
+    Parameters
+    ----------
+    cluster_config : str
+         config file with cluster characteristics
+         
+    cluster_stats : dict
+        dictionary with cluster details
+        
+    Returns
+    ----------
+    connection object
+        a new connection object
+    '''
+
+    # Get Cluster details from config file
+    config = configparser.ConfigParser()
+    config.read_file(open(cluster_config))
+    
+    try:
+        conn = psycopg2.connect("host={} dbname={} user={} password={} port={}".format(*config['DB'].values()))
+        return conn
+    
+    except Exception as e:
+        print("Unable to connect to the database")
+        print(e)
+        
