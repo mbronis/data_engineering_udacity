@@ -26,11 +26,12 @@ def create_redshift_admin(iam_credentials):
 
     key = config.get("IAM", "key")
     secret = config.get("IAM", "secret")
+    region = config.get("CLUSTER", "cl_region")
 
     #Create redshift client
     redshift_admin = boto3.client(
         'redshift',
-        region_name="eu-west-1",
+        region_name = region,
         aws_access_key_id = key,
         aws_secret_access_key = secret
     )
@@ -58,11 +59,12 @@ def create_s3(iam_credentials):
 
     key = config.get("IAM", "key")
     secret = config.get("IAM", "secret")
+    region = config.get("CLUSTER", "cl_region")
 
     #S3 resource
     s3 = boto3.resource(
         's3',
-        region_name="us-west-2",
+        region_name = region,
         aws_access_key_id = key,
         aws_secret_access_key = secret
                    )
@@ -168,13 +170,14 @@ def create_ec2_instance(iam_credentials):
 
     key = config.get("IAM", "key")
     secret = config.get("IAM", "secret")
+    region = config.get("CLUSTER", "cl_region")
 
     #Create client
     ec2 = boto3.resource('ec2',
-                       region_name="eu-west-1",
-                       aws_access_key_id = key,
-                       aws_secret_access_key = secret
-                    )
+        region_name = region,
+        aws_access_key_id = key,
+        aws_secret_access_key = secret
+    )
     
     return ec2
 
