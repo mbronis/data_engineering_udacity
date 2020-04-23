@@ -186,8 +186,7 @@ def open_tcp_endpoint(ec2, cluster_config):
         print(e)
 
    
-
-def make_connection(cluster_config):
+def make_connection_string(cluster_config):
     '''
     Creates connection string for redshift cluster
     
@@ -195,9 +194,30 @@ def make_connection(cluster_config):
     ----------
     cluster_config : str
          config file with cluster characteristics
-         
-    cluster_stats : dict
-        dictionary with cluster details
+        
+    Returns
+    ----------
+    str
+        a connection string
+    '''
+
+    # Get Cluster details from config file
+    config = configparser.ConfigParser()
+    config.read_file(open(cluster_config))
+    
+    conn_str = "host={} dbname={} user={} password={} port={}".format(*config['DB'].values())
+    
+    return conn_str
+
+
+def make_connection(cluster_config):
+    '''
+    Creates connection object for redshift cluster
+    
+    Parameters
+    ----------
+    cluster_config : str
+         config file with cluster characteristics
         
     Returns
     ----------
@@ -205,15 +225,18 @@ def make_connection(cluster_config):
         a new connection object
     '''
 
-    # Get Cluster details from config file
-    config = configparser.ConfigParser()
-    config.read_file(open(cluster_config))
+    # make connection string
+    conn_str = make_connection_string(cluster_config)
     
+    # connect
     try:
-        conn = psycopg2.connect("host={} dbname={} user={} password={} port={}".format(*config['DB'].values()))
+        conn = psycopg2.connect(conn_str)
+        conn.autocommit = True
+        
         return conn
     
     except Exception as e:
         print("Unable to connect to the database")
         print(e)
-        
+
+
