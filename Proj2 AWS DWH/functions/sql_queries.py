@@ -19,8 +19,8 @@ staging_songs_table_create = """\
 CREATE TABLE IF NOT EXISTS staging_songs (\
     num_songs INT, \
     artist_id VARCHAR NOT NULL, \
-    artist_latitude INT, \
-    artist_longitude INT, \
+    artist_latitude NUMERIC, \
+    artist_longitude NUMERIC, \
     artist_location VARCHAR, \
     artist_name VARCHAR, \
     song_id VARCHAR PRIMARY KEY, \
@@ -79,3 +79,5 @@ drop_table_queries = [staging_events_table_drop, staging_songs_table_drop, songp
 # insert_table_queries = [songplay_table_insert, user_table_insert, song_table_insert, artist_table_insert, time_table_insert]
 
 create_table_queries = [staging_songs_table_create]
+copy_table_queries = [staging_songs_copy]
+insert_table_queries = []

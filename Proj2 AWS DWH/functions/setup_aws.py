@@ -37,6 +37,37 @@ def create_redshift_admin(iam_credentials):
     
     return redshift_admin
 
+def create_s3(iam_credentials):
+    '''
+    Creates a S3 resource instance with AWS IAM user credentials.
+    
+    Parameters
+    ----------
+    iam_credentials : str
+        path to config (.cfg) file with IAM user KEY and SECRET
+
+    Returns
+    ----------
+    S3 resource instance
+        
+    '''
+    
+    #Read user KEY and SECRET
+    config = configparser.ConfigParser()
+    config.read_file(open(iam_credentials))
+
+    key = config.get("IAM", "key")
+    secret = config.get("IAM", "secret")
+
+    #S3 resource
+    s3 = boto3.resource(
+        's3',
+        region_name="us-west-2",
+        aws_access_key_id = key,
+        aws_secret_access_key = secret
+                   )
+    
+    return s3
 
 def create_cluster(cluster_config, redshift_admin):
     '''
