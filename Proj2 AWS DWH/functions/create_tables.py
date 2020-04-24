@@ -3,6 +3,7 @@ import psycopg2
 from functions.setup_aws import make_connection
 from functions.sql_queries import drop_table_queries, create_table_queries
 
+aws_config = 'configs/aws.cfg'
 
 def drop_tables(cur, conn):
     for query in drop_table_queries:
@@ -17,7 +18,7 @@ def create_tables(cur, conn):
 
 
 def main():
-    conn = make_connection('configs/aws.cfg')
+    conn = make_connection(aws_config)
     cur = conn.cursor()
 
     drop_tables(cur, conn)

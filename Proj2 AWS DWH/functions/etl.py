@@ -3,6 +3,8 @@ import psycopg2
 from functions.setup_aws import make_connection
 from sql_queries import copy_table_queries, insert_table_queries
 
+aws_config = 'configs/aws.cfg'
+
 
 def load_staging_tables(cur, conn):
     for query in copy_table_queries:
@@ -17,7 +19,7 @@ def insert_tables(cur, conn):
 
 
 def main():
-    conn = make_connection('configs/aws.cfg')
+    conn = make_connection(aws_config)
     cur = conn.cursor()
     
     load_staging_tables(cur, conn)
