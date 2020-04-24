@@ -181,20 +181,23 @@ def create_ec2_instance(iam_credentials):
     
     return ec2
 
-def open_tcp_endpoint(ec2, cluster_config):
+def open_tcp_endpoint(iam_credentials, cluster_config):
     '''
     Opens an incoming TCP port to access the cluster endpoint.
     
     Parameters
     ----------
-    ec2 : ec2 instance
-        ec2 instance
+    iam_credentials : str
+        path to config (.cfg) file with IAM user KEY and SECRET
     
     cluster_config : str
          config file with cluster characteristics
     '''
-        
-    # Get Cluster details from config file
+    
+    # create ec2 instance
+    ec2 = create_ec2_instance(iam_credentials)
+    
+    # get cluster details from config file
     config = configparser.ConfigParser()
     config.read_file(open(cluster_config))
        
