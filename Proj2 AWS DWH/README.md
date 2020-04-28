@@ -101,26 +101,23 @@ FROM (
         count(*) as plays
     FROM
         songplays
-    GROUP BY
-        1
-    ORDER BY
-        2 desc
-    LIMIT
-        10
-     )
+    GROUP BY 1
+    ORDER BY 2 desc
+    LIMIT 10
+    )
  ;
 
-place	song	        plays
-1	    You're The One	37
-2	    Undo	        28
-3	    Revelry	        27
-4	    Sehr kosmisch	21
-5	    Horn Concerto No. 4 in E flat K495: II. Romance (Andante cantabile)	            19
-6	    Secrets	        17
-7	    Canada	        17
-8	    Dog Days Are Over (Radio Edit)	16
-9	    Fireflies	    14
-10	    ReprÃÂ©sente	14
+place	song	    plays
+1   You're The One	37
+2   Undo	        28
+3   Revelry	        27
+4   Sehr kosmisch	21
+5   Horn Concerto No. 4	19
+6   Secrets 	        17
+7   Canada  	        17
+8   Dog Days Are Over	16
+9   Fireflies   	14
+10  ReprÃÂ©sente	14
 ```
 
 _You're The One_ is the most played song, however there is no outstanding hit song.
@@ -132,12 +129,13 @@ b) number of songs played by a weekday
 SELECT 
     weekday, 
     COUNT(*) AS plays 
-FROM songplays 
-    JOIN time USING(start_time) 
-GROUP BY
-    1
-ORDER BY
-    1
+FROM
+    songplays 
+JOIN
+    time
+USING(start_time) 
+GROUP BY 1
+ORDER BY 1
 ;
 
 weekday	plays
