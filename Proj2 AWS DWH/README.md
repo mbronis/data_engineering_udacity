@@ -1,7 +1,7 @@
 # About the project
 
 This repo contains third capstone project for **Udacity Data Engeneering Nanodegree** program (here is the project [frontpage](https://www.udacity.com/course/data-engineer-nanodegree--nd027)).\
-The goal is to implement a DWH using `Amazon Redshift` service, and a ETL pipeline that extracts data from S3 bucket, and loads it into normalized (`3NF`) data model.
+The goal is to implement a DWH using `Amazon Redshift` service, and a ETL pipeline that extracts data from S3 bucket, and loads it into normalized `3NF` data model.
 
 The project revolves around imaginary music streeming company - **Sparkify**.\
 They store JSON logs of users activitiy in S3 bucket, along with metadata on songs played.\
@@ -93,14 +93,22 @@ a) top 10 most played songs
 
 ```sql
 SELECT
-    songs.title AS song,
-    artists.name AS artist
-FROM songplays 
-    JOIN songs ON songplays.song_id = songs.song_id
-    JOIN artists ON songplays.artist_id = artists.artist_id
-GROUP BY 1, 2
-ORDER BY count(*) DESC
-LIMIT 10;
+    row_number() over () as place,
+    * 
+FROM (
+    SELECT
+        song, 
+        count(*) as plays
+    FROM
+        songplays
+    GROUP BY
+        1
+    ORDER BY
+        2 desc
+    LIMIT
+        10
+     )
+ ;
 
 place	song	        plays
 1	    You're The One	37
@@ -112,7 +120,7 @@ place	song	        plays
 7	    Canada	        17
 8	    Dog Days Are Over (Radio Edit)	16
 9	    Fireflies	    14
-10	    ReprÃÂ©sente	14
+10	    ReprÃÂ©sente	14
 ```
 
 _You're The One_ is the most played song, however there is no outstanding hit song.
@@ -133,13 +141,13 @@ ORDER BY
 ;
 
 weekday	plays
-1	     1014
-2	     1071
-3	     1364
-4	     1052
-5	     1295
-6	      628
-7	      396
+1	1014
+2	1071
+3	1364
+4	1052
+5	1295
+6	 628
+7	 396
 ```
 It can be seen that Wendesday is the day when the app is used the most. Sumprisingly users choose different acivities during the weekend.
 
