@@ -63,56 +63,35 @@ When `IAM.cfg` is provided, then the `test.ipynb` runs through all stages of the
 
 ## Architecture
 
+Solution architecture can be summarised in below diagram. \
+There are two main components: 
+* **Data sources** - raw data in JSON format
+* **DWH** - where staging area and main dwh resides\
+ Analytical data model can be accesed by external **BI apps** via database endpoint.
+
+![Architecture](resources/arch_diagram.jpg)
+
 ## Data model
+
+As the goal is to enable Sparkify analysts an easy and flexible way of quering the data, the **snowflake** logical architecture has been choosen.
+Main **facts** relation is `songplays`.
+**Dimesion** tables will cover:
+* `song`
+* `artist`
+* `user`
+* `time`
+
+metadata. This model will provide logical separation of different business entities and limit the data redundancy. Those properties make our database design achieve `3NF`.
+
+![Data model](resources/db_diagram.jpg)
 
 # Sample queries
 
+Lets run some sample queries to get basic insigts about the Sparkify business.
 
-### The database design
+a) top 10 most played songs
 
-As the goal is to enable analysts easy and flexible way of quering the data a **relational database** is chosen.
-Main relation will be `songplays` **facts** table.
-Additional details about: 
-* the song
-* the artist
-* the user
-
-will be stored in seperate tables. Seperate table with time and data details will also be created.
-
-Those tables will be arranged in **snowflake** logical architecture around `songplays` table.
-This architecture will provide logical separation of different business entities, limit the data redundancy.
-Each table will have a `primary key` allowing for easy and flexible `JOIN`.
-Those properties make our database design achieve `3NF`.
-
-## ETL
-
-The `ETL` process can be separated into four stages:
-
-1) Create empty target tables:
-* `songs` 
-* `artists`
-* `users`
-* `time`
-* `songplays`
-
-
-2) Populate `song` and `artist` tables with song metadata
-
-3) Populate `user` and `time` tables with activity logs.
-
-4) Finally populate `songplays`, basing on activity logs and with added song and user id from `song` and `user` tables.
-
-## Running test ETL
-
-ETL can be run with `test.ipynb` script. First a database is created `create_db.py`, then it is populated with empty tables `create_tables.py`.
-Finally tables are populated with proper data `etl.py`.
-SQLs for tables creation are stored in `sql_queries.py`.
-
-## Sample queries
-
-a) top 10 most played songs (with song title and artist name)
-
-`
+```sql
 SELECT
     songs.title AS song,
     artists.name AS artist
@@ -122,26 +101,45 @@ FROM songplays
 GROUP BY 1, 2
 ORDER BY count(*) DESC
 LIMIT 10;
-`
 
-b) average number of songs played daily by all users
+place	song	        plays
+1	    You're The One	37
+2	    Undo	        28
+3	    Revelry	        27
+4	    Sehr kosmisch	21
+5	    Horn Concerto No. 4 in E flat K495: II. Romance (Andante cantabile)	            19
+6	    Secrets	        17
+7	    Canada	        17
+8	    Dog Days Are Over (Radio Edit)	16
+9	    Fireflies	    14
+10	    ReprÃÂ©sente	14
+```
 
-`
+_You're The One_ is the most played song, however there is no outstanding hit song.
+
+
+b) number of songs played by a weekday
+
+```sql
 SELECT 
-    min(songs_played) as min_songs_played,
-    avg(songs_played)::int as average_songs_played,
-    max(songs_played) as max_songs_played
-FROM
-(
-    SELECT
-        time.year,
-        time.month,
-        time.day,
-        count(*) AS songs_played
-    FROM songplays
-        JOIN time ON songplays.start_time = time.start_time
-    GROUP BY 1,2,3
-) AS daily_plays
-`
+    weekday, 
+    COUNT(*) AS plays 
+FROM songplays 
+    JOIN time USING(start_time) 
+GROUP BY
+    1
+ORDER BY
+    1
+;
 
+weekday	plays
+1	     1014
+2	     1071
+3	     1364
+4	     1052
+5	     1295
+6	      628
+7	      396
+```
+It can be seen that Wendesday is the day when the app is used the most. Sumprisingly users choose different acivities during the weekend.
 
